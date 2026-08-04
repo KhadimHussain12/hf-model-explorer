@@ -44,11 +44,6 @@ with tab_summarize:
             except Exception as e:
                 st.error(f"Error: {e}")
 
-from PIL import Image
-import io
-
-# ... [rest of your code above] ...
-
 # ------------------------------------------------------------------
 # Tab 3: Object Recognition (Vision)
 # ------------------------------------------------------------------
