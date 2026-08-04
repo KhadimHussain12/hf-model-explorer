@@ -1,4 +1,5 @@
 import os
+import requests
 import io
 import streamlit as st
 from dotenv import load_dotenv
@@ -114,7 +115,7 @@ with tab_summarize:
                     st.error(f"Inference Error: {str(e)}")
 
 # ------------------------------------------------------------------
-# Tab 3: Object Recognition (Vision) - FIXED FOR PIL BYTES
+# Tab 3: Object Recognition (Vision)
 # ------------------------------------------------------------------
 with tab_vision:
     st.header("Object Recognition / Image Classification")
@@ -125,31 +126,39 @@ with tab_vision:
     if uploaded_file is not None:
         col_img, col_preds = st.columns([1, 1])
         
-        # Open image with PIL
-        image = Image.open(uploaded_file)
-        
         with col_img:
-            st.image(image, caption="Uploaded Image", use_container_width=True)
+            st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
             
         with col_preds:
             if st.button("Classify Image", type="primary", key="btn_vision"):
                 with st.spinner("Analyzing image features..."):
                     try:
-                        # Convert PIL image to raw bytes with explicit PNG/JPEG format
-                        buf = io.BytesIO()
-                        img_format = image.format if image.format else "JPEG"
-                        image.save(buf, format=img_format)
-                        img_bytes = buf.getvalue()
+                        # 1. Retrieve Hugging Face API Token
+                        hf_token = os.getenv("HF_TOKEN") or st.secrets.get("HF_TOKEN", "")
                         
-                        predictions = client.image_classification(
-                            image=img_bytes,
-                            model="google/vit-base-patch16-224"
-                        )
+                        # 2. Define Endpoint URL & Explicit Headers
+                        API_URL = "https://api-inference.huggingface.co/models/google/vit-base-patch16-224"
+                        headers = {
+                            "Authorization": f"Bearer {hf_token}",
+                            "Content-Type": uploaded_file.type or "image/jpeg"
+                        }
                         
-                        st.subheader("Top Predictions")
-                        for pred in predictions[:5]:
-                            st.write(f"**{pred.label.title()}**: {pred.score * 100:.1f}%")
-                            st.progress(float(pred.score))
-                            
+                        # 3. Read image bytes and POST directly
+                        image_bytes = uploaded_file.getvalue()
+                        response = requests.post(API_URL, headers=headers, data=image_bytes)
+                        
+                        # 4. Handle response payload
+                        if response.status_code == 200:
+                            predictions = response.json()
+                            st.success("Classification Complete!")
+                            st.subheader("Top Predictions")
+                            for pred in predictions[:5]:
+                                label = pred.get("label", "Unknown").title()
+                                score = pred.get("score", 0.0)
+                                st.write(f"**{label}**: {score * 100:.1f}%")
+                                st.progress(float(score))
+                        else:
+                            st.error(f"HF API Error ({response.status_code}): {response.text}")
+
                     except Exception as e:
                         st.error(f"Inference Error: {str(e)}")
