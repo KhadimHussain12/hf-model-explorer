@@ -61,27 +61,22 @@ with tab_vision:
     if uploaded_file is not None:
         col_img, col_preds = st.columns([1, 1])
         
-        # Open and display image using PIL
-        image = Image.open(uploaded_file)
-        
         with col_img:
-            st.image(image, caption="Uploaded Image", use_container_width=True)
+            st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
             
         with col_preds:
             if st.button("Classify Image", type="primary", key="btn_vision"):
                 with st.spinner("Analyzing image features..."):
                     try:
-                        # Convert image object to bytes format for HF API
-                        buf = io.BytesIO()
-                        image.save(buf, format=image.format or "JPEG")
-                        img_bytes = buf.getvalue()
+                        # Pass raw uploaded file bytes directly to HF client
+                        img_bytes = uploaded_file.getvalue()
                         
-                        # Request image classification using raw bytes
                         predictions = client.image_classification(
                             image=img_bytes,
                             model="google/vit-base-patch16-224"
                         )
                         
+                        st.success("Classification Complete!")
                         st.subheader("Top Predictions")
                         for pred in predictions[:5]:
                             st.write(f"**{pred.label.title()}**: {pred.score * 100:.1f}%")
