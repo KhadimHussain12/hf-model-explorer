@@ -136,18 +136,18 @@ with tab_vision:
                         # 1. Retrieve Hugging Face API Token
                         hf_token = os.getenv("HF_TOKEN") or st.secrets.get("HF_TOKEN", "")
                         
-                        # 2. Define Endpoint URL & Explicit Headers
-                        API_URL = "https://api-inference.huggingface.co/models/google/vit-base-patch16-224"
+                        # 2. Updated Endpoint URL & Explicit Headers
+                        API_URL = "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224"
                         headers = {
                             "Authorization": f"Bearer {hf_token}",
                             "Content-Type": uploaded_file.type or "image/jpeg"
                         }
                         
-                        # 3. Read image bytes and POST directly
+                        # 3. Send direct POST request
                         image_bytes = uploaded_file.getvalue()
                         response = requests.post(API_URL, headers=headers, data=image_bytes)
                         
-                        # 4. Handle response payload
+                        # 4. Process Response
                         if response.status_code == 200:
                             predictions = response.json()
                             st.success("Classification Complete!")
