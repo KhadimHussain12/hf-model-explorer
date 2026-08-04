@@ -45,15 +45,39 @@ with tab_summarize:
                 st.error(f"Error: {e}")
 
 with tab_vision:
-    st.header("Object Recognition")
-    img_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
-    if img_file and st.button("Classify Image", type="primary"):
-        with st.spinner("Classifying..."):
-            try:
-                img_bytes = img_file.read()
-                preds = client.image_classification(image=img_bytes, model="google/vit-base-patch16-224")
-                for p in preds[:5]:
-                    st.write(f"**{p.label.title()}**: {p.score * 100:.1f}%")
-                    st.progress(float(p.score))
-            except Exception as e:
-                st.error(f"Error: {e}")
+    st.header("Object Recognition / Image Classification")
+    st.caption("Model: `google/vit-base-patch16-224`")
+    
+    uploaded_file = st.file_uploader("Upload an image (JPG, PNG)", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_file is not None:
+        col_img, col_preds = st.columns([1, 1])
+        
+        # Open and display image using PIL
+        image = Image.open(uploaded_file)
+        
+        with col_img:
+            st.image(image, caption="Uploaded Image", use_container_width=True)
+            
+        with col_preds:
+            if st.button("Classify Image", type="primary", key="btn_vision"):
+                with st.spinner("Analyzing image features..."):
+                    try:
+                        # Convert image object to bytes format for HF API
+                        buf = io.BytesIO()
+                        image.save(buf, format=image.format or "JPEG")
+                        img_bytes = buf.getvalue()
+                        
+                        # Request image classification using raw bytes
+                        predictions = client.image_classification(
+                            image=img_bytes,
+                            model="google/vit-base-patch16-224"
+                        )
+                        
+                        st.subheader("Top Predictions")
+                        for pred in predictions[:5]:
+                            st.write(f"**{pred.label.title()}**: {pred.score * 100:.1f}%")
+                            st.progress(float(pred.score))
+                            
+                    except Exception as e:
+                        st.error(f"Inference Error: {str(e)}")
